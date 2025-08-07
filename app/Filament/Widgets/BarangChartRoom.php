@@ -72,7 +72,7 @@ class BarangChartRoom extends ChartWidget
                 ],
                 [
                     'type' => 'line',
-                    'label' => '20% dari Total Barang',
+                    'label' => 'Batas Kerusakan',
                     'data' => $lineData,
                     'borderColor' => '#fbbf24',
                     'backgroundColor' => '#fbbe24a9',
