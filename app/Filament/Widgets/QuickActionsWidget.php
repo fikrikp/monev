@@ -5,7 +5,7 @@ namespace App\Filament\Widgets;
 use Filament\Widgets\Widget;
 // ✅ Import Resource yang dibutuhkan untuk mendapatkan URL-nya
 use App\Filament\Resources\UserResource;
-use App\Filament\Resources\RoomResource; // Pastikan ini AreaResource jika untuk 'Add Area'
+use App\Filament\Resources\RoomResource;
 use App\Filament\Resources\BarangResource;
 use App\Filament\Resources\ReportResource;
 use Illuminate\Support\Facades\Auth;

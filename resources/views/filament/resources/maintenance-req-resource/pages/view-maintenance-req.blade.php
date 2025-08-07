@@ -1,136 +1,92 @@
 <x-filament::section>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {{-- Kolom Kiri: Informasi Detail --}}
-        <div class="space-y-4">
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Nama Staff Pelapor</h3>
-                <p class="text-lg">{{ $record->user?->name ?? $record->nama_staff ?? '-' }}</p>
-            </div>
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Area / Ruangan</h3>
-                <p class="text-lg">{{ $record->barang?->room?->area?->area_name ?? '-' }} / {{ $record->barang?->room?->room_name ?? '-' }}</p>
-            </div>
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Kategori Barang</h3>
-                <p class="text-lg">{{ $record->barang?->category?->category_name ?? '-' }}</p>
-            </div>
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Nama Barang</h3>
-                <p class="text-lg">{{ $record->barang?->item_name ?? '-' }}</p>
-            </div>
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Type</h3>
-                <p class="text-lg">{{ $record->barang?->type ?? '-' }}</p>
-            </div>
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Status Saat Ini</h3>
-                <span class="px-2 py-1 text-sm font-medium text-white bg-primary-600 rounded-md">
-                    {{ \Illuminate\Support\Str::of($record->status ?? '-')->replace('_', ' ')->title() }}
-                </span>
-            </div>
+    @php
+    $canUpdateStatusOrImage = auth()->user()->role === 'supervisor';
+    $canEditEvaluation = auth()->user()->role === 'chief_engineering';
 
-            @php
-            // Otorisasi
-            $canUpdateStatusOrImage = auth()->user()->role === 'supervisor';
-            $canEditEvaluation = auth()->user()->role === 'chief_engineering';
+    $allStatuses = [
+    'our_purchasing' => 'Our Purchasing',
+    'waiting_material' => 'Waiting Material',
+    'in_progress' => 'In Progress',
+    'done' => 'Done'
+    ];
+    @endphp
 
-            // Daftar status
-            $allStatuses = [
-            ''=>'',
-            'our_purchasing' => 'Our Purchasing',
-            'waiting_material' => 'Waiting Material',
-            'in_progress' => 'In Progress',
-            'done' => 'Done'
-            ];
-            @endphp
-
-            {{-- Form Ubah Status --}}
-            @if($canUpdateStatusOrImage)
-            <div class="mt-6 space-x-2">
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Ubah Status:</h3>
-                @foreach ($allStatuses as $value => $label)
-                <form method="POST" action="{{ route('evaluasi.ubah-status', $record->id) }}" class="inline">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="status" value="{{ $value }}">
-                    <button type="submit"
-                        class="px-8 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700 transition mr-2">
-                        {{ $label }}
-                    </button>
-                </form>
-                @endforeach
-            </div>
-            @endif
-        </div>
-
-        {{-- Kolom Kanan: Gambar dan Kondisi --}}
-        <div class="space-y-4">
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Deskripsi Masalah (Kondisi)</h3>
-                <p class="text-lg whitespace-pre-wrap">{{ $record->problem }}</p>
-            </div>
-
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Evaluasi</h3>
-
-                <form method="POST" action="{{ route('evaluasi.kirim', $record->id) }}">
-                    @csrf
-
-                    <div class="mb-4">
-                        <textarea
-                            name="evaluasi"
-                            id="evaluasi"
-                            rows="3"
-                            class="block w-full mt-1 border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500
-                    dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-                            @if (auth()->user()->role !== 'chief_engineering') disabled @endif>{{ $record->evaluasi }}</textarea>
-                    </div>
-
-                    @if (auth()->user()->role === 'chief_engineering')
-                    <div class="mt-4">
-                        <button type="submit"
-                            class="px-2 py-1 bg-primary-600 text-white font-semibold rounded-md hover:bg-primary-700 transition">
-                            Kirim Evaluasi
-                        </button>
+    <div class="space-y-8">
+        {{-- Bagian Aksi Utama --}}
+        <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Lakukan Tindakan</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-gray-500 dark:text-gray-400">Evaluasi</h3>
+                    <form method="POST" action="{{ route('evaluasi.kirim', $record->id) }}" class="mt-2">
+                        @csrf
+                        <textarea name="evaluasi" rows="4" class="block w-full border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" @if (!$canEditEvaluation) readonly @endif>{{ $record->evaluasi }}</textarea>
+                        @if ($canEditEvaluation)
+                        <button type="submit" class="mt-2 px-4 py-2 bg-primary-600 text-white font-semibold rounded-md hover:bg-primary-700 w-full">Kirim Evaluasi</button>
+                        @endif
+                    </form>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-500 dark:text-gray-400">Status Maintenance:
+                        <span class="px-2 py-1 text-sm font-medium text-white bg-primary-600 rounded-md">
+                            {{ \Illuminate\Support\Str::of($record->status ?? '-')->replace('_', ' ')->title() }}
+                        </span>
+                    </h3>
+                    @if($canUpdateStatusOrImage)
+                    <div class="mt-2 grid grid-cols-2 gap-2">
+                        @foreach ($allStatuses as $value => $label)
+                        <form method="POST" action="{{ route('evaluasi.ubah-status', $record->id) }}">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="status" value="{{ $value }}">
+                            <button type="submit" class="w-full py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                                {{ $label }}
+                            </button>
+                        </form>
+                        @endforeach
                     </div>
                     @endif
-                </form>
+                </div>
             </div>
+        </div>
 
-            <div>
-                <h3 class="font-semibold text-gray-500 dark:text-gray-400">Foto Kondisi</h3>
-
-                @if ($canUpdateStatusOrImage)
-                <form method="POST" action="{{ route('evaluasi.update-gambar', $record->id) }}" enctype="multipart/form-data">
-                    @csrf
-                    @method('PUT')
-
-                    <div class="mb-4 mt-2">
-                        <input
-                            type="file"
-                            name="condition_pict"
-                            accept="image/*"
-                            class="block w-full text-sm text-gray-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded-md file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-primary-50 file:text-primary-700
-                            hover:file:bg-primary-100">
-                    </div>
-
-                    <button type="submit"
-                        class="px-6 py-1 bg-primary-600 text-white font-semibold rounded-md hover:bg-primary-700 transition mb-4">
-                        Update Gambar
-                    </button>
-                </form>
-                @endif
-
+        {{-- Bagian Informasi Laporan & Foto --}}
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Informasi Laporan</h2>
+                <div>
+                    <h3 class="font-semibold text-gray-500 dark:text-gray-400">Nama Staff Pelapor</h3>
+                    <p class="text-lg">{{ $record->user?->name ?? $record->nama_staff ?? '-' }}</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-500 dark:text-gray-400">Area / Ruangan</h3>
+                    <p class="text-lg">{{ $record->barang?->room?->area?->area_name ?? '-' }} / {{ $record->barang?->room?->room_name ?? '-' }}</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-500 dark:text-gray-400">Kategori & Nama Barang</h3>
+                    <p class="text-lg">{{ $record->barang?->category?->category_name ?? '-' }} / {{ $record->barang?->item_name ?? '-' }} ({{ $record->barang?->type ?? '-' }})</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-500 dark:text-gray-400">Deskripsi Masalah</h3>
+                    <p class="text-lg whitespace-pre-wrap">{{ $record->problem }}</p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Foto Kondisi</h2>
                 @if ($record->condition_pict_path)
                 <img src="{{ asset('storage/'.$record->condition_pict_path) }}"
-                    alt="Foto kondisi barang yang dilaporkan untuk maintenance"
-                    class="mt-4 rounded-lg max-w-sm">
+                    alt="Foto kondisi barang yang dilaporkan"
+                    class="rounded-lg w-full h-auto object-cover max-h-96">
                 @else
-                <p class="text-gray-500 mt-2">Tidak ada gambar.</p>
+                <p class="text-gray-500">Tidak ada gambar.</p>
+                @endif
+                @if ($canUpdateStatusOrImage)
+                <form method="POST" action="{{ route('evaluasi.update-gambar', $record->id) }}" enctype="multipart/form-data" class="flex items-center space-x-2 mt-4">
+                    @csrf
+                    @method('PUT')
+                    <input type="file" name="condition_pict" accept="image/*" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 dark:file:bg-gray-700 dark:file:text-white">
+                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white font-semibold rounded-md hover:bg-primary-700">Update</button>
+                </form>
                 @endif
             </div>
         </div>

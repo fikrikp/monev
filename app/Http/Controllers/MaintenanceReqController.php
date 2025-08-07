@@ -11,52 +11,59 @@ use Illuminate\Support\Facades\Auth;
 
 class MaintenanceReqController extends Controller
 {
-
     public function kirimEvaluasi(Request $request, MaintenanceReq $maintenanceReq)
     {
         Log::info('MASUK ke kirimEvaluasi()', [
             'user_id' => Auth::user()->id,
-            'role' => Auth::user()?->role,
-            'evaluasi' => $request->evaluasi,
+            'role' => Auth::user()->role ?? 'guest',
+            'evaluasi_data_diterima' => $request->evaluasi,
         ]);
-        if (Auth::check() && Auth::user()->role !== 'chief_engineering') {
-            if (Auth::check() && Auth::user()->role !== 'chief_engineering') {
+
+        // 1. Otorisasi
+        if (!Auth::check() || Auth::user()->role !== 'chief_engineering') {
+            Notification::make()
+                ->title('Akses Ditolak!')
+                ->body('Anda tidak memiliki izin untuk mengirim evaluasi.')
+                ->danger()
+                ->send();
+            return back();
+        }
+
+        try {
+            // 2. Validasi data
+            $validatedData = $request->validate([
+                'evaluasi' => 'nullable|string',
+            ]);
+
+            // 3. Update data evaluasi
+            $updated = $maintenanceReq->update([
+                'evaluasi' => $validatedData['evaluasi']
+            ]);
+
+            if ($updated) {
                 Notification::make()
-                    ->title('Akses Ditolak!')
-                    ->body('Anda tidak memiliki izin untuk mengirim evaluasi.')
+                    ->title('Evaluasi Berhasil Dikirim!')
+                    ->success()
+                    ->send();
+            } else {
+                Notification::make()
+                    ->title('Gagal Menyimpan Evaluasi.')
+                    ->body('Terjadi masalah saat memperbarui record evaluasi.')
                     ->danger()
                     ->send();
-                return back();
-
-                try {
-                    $validatedData = $request->all();
-
-                    $updated = $maintenanceReq->update(['evaluasi' => $validatedData['evaluasi']]);
-
-                    if ($updated) {
-                        Notification::make()
-                            ->title('Evaluasi Berhasil Dikirim!')
-                            ->success()
-                            ->send();
-                    } else {
-                        Notification::make()
-                            ->title('Gagal Menyimpan Evaluasi.')
-                            ->body('Terjadi masalah saat memperbarui record evaluasi.')
-                            ->danger()
-                            ->send();
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Error update evaluasi: ' . $e->getMessage());
-                    Notification::make()
-                        ->title('Terjadi Kesalahan!')
-                        ->body('Terjadi kesalahan saat mencoba menyimpan evaluasi.')
-                        ->danger()
-                        ->send();
-                }
-                return back();
             }
+        } catch (\Exception $e) {
+            Log::error('Error update evaluasi: ' . $e->getMessage());
+            Notification::make()
+                ->title('Terjadi Kesalahan!')
+                ->body('Terjadi kesalahan saat mencoba menyimpan evaluasi.')
+                ->danger()
+                ->send();
         }
+
+        return back();
     }
+
 
     public function ubahStatus(Request $request, MaintenanceReq $maintenanceReq)
     {
