@@ -10,13 +10,16 @@ use Illuminate\Support\Facades\Auth;
 class BarangChartMeetingRoom extends ChartWidget
 {
     // Judul widget yang akan ditampilkan di dashboard
-    protected static ?string $heading = 'Kondisi Barang Inventaris Area Meeting Room';
+    protected static ?string $heading = 'Monitoring Barang Inventaris Area Meeting Room';
 
     // Mendefinisikan tipe chart, meskipun ini mixed-chart, kita bisa set tipe dasarnya
     protected static string $chart = 'bar';
 
     // Menentukan urutan widget di dashboard
-    public static ?int $sort = 2;
+    public static ?int $sort = 3;
+
+    // Properti baru untuk menyimpan status apakah diperlukan daily worker
+    protected bool $needsDailyWorker = false;
 
     /**
      * Get the type of chart to display
@@ -35,7 +38,6 @@ class BarangChartMeetingRoom extends ChartWidget
         $areaName = "Meeting Room";
 
         // Mengambil semua nama barang unik di area "Meeting Room"
-
         $itemNames = Barang::whereHas('room.area', function ($query) use ($areaName) {
             $query->where('area_name', $areaName);
         })
@@ -76,6 +78,11 @@ class BarangChartMeetingRoom extends ChartWidget
             $baikData[] = $baikCount;
             $rusakData[] = $rusakCount;
             $lineData[] = $totalCount * 0.20; // Menghitung 20% dari total barang
+
+            // Memeriksa jika jumlah barang rusak melebihi 20% dari total
+            if ($rusakCount > ($totalCount * 0.20)) {
+                $this->needsDailyWorker = true;
+            }
         }
 
         // Mengembalikan data dalam format yang dimengerti Chart.js
@@ -113,12 +120,13 @@ class BarangChartMeetingRoom extends ChartWidget
      */
     protected function getOptions(): ?array
     {
-        $areaName = "Meeting Room";
-
-        // Menghitung total barang di Meeting Room untuk ditampilkan di judul
-        $totalMeetingRoomItems = Barang::whereHas('room.area', function (Builder $query) use ($areaName) {
-            $query->where('area_name', $areaName);
-        })->count();
+        // Mengatur teks judul secara dinamis berdasarkan kondisi
+        $titleText = 'Evaluasi : ';
+        if ($this->needsDailyWorker) {
+            $titleText .= 'Diperlukan Daily Worker';
+        } else {
+            $titleText .= 'Tidak ada';
+        }
 
         return [
             'responsive' => true,
@@ -130,7 +138,7 @@ class BarangChartMeetingRoom extends ChartWidget
                 ],
                 'title' => [
                     'display' => true,
-                    'text' => 'Total Barang di Meeting Room: ' . $totalMeetingRoomItems,
+                    'text' => $titleText, // Menggunakan teks judul yang sudah dimodifikasi
                 ]
             ],
             'scales' => [
@@ -144,7 +152,7 @@ class BarangChartMeetingRoom extends ChartWidget
                     'min' => 0,
                 ],
             ],
-            'aspectRatio' => 2,
+            'aspectRatio' => 1.5
         ];
     }
 

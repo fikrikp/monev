@@ -9,9 +9,12 @@ use Illuminate\Support\Facades\Auth;
 
 class BarangChartRoom extends ChartWidget
 {
-    protected static ?string $heading = 'Kondisi Barang Inventaris Area Room';
+    protected static ?string $heading = 'Monitoring Barang Inventaris Area Room';
     protected static string $chart = 'bar';
     public static ?int $sort = 2;
+
+    // Properti baru untuk menyimpan status apakah diperlukan daily worker
+    protected bool $needsDailyWorker = false;
 
     protected function getType(): string
     {
@@ -46,6 +49,11 @@ class BarangChartRoom extends ChartWidget
             $baikData[] = $baikCount;
             $rusakData[] = $rusakCount;
             $lineData[] = $totalCount * 0.20;
+
+            // Memeriksa jika jumlah barang rusak melebihi 20% dari total
+            if ($rusakCount > ($totalCount * 0.20)) {
+                $this->needsDailyWorker = true;
+            }
         }
 
         return [
@@ -79,8 +87,14 @@ class BarangChartRoom extends ChartWidget
 
     protected function getOptions(): ?array
     {
-        $areaName = "Room";
-        $totalRoomItems = Barang::whereHas('room.area', fn(Builder $query) => $query->where('area_name', $areaName))->count();
+
+        // Mengatur teks judul secara dinamis berdasarkan kondisi
+        $titleText = 'Evaluasi : ';
+        if ($this->needsDailyWorker) {
+            $titleText .= 'Diperlukan Daily Worker';
+        } else {
+            $titleText .= 'Tidak ada'; // Tambahkan teks ini jika kondisi tidak terpenuhi
+        }
 
         return [
             'responsive' => true,
@@ -88,7 +102,7 @@ class BarangChartRoom extends ChartWidget
                 'legend' => ['labels' => ['color' => 'rgba(0,0,0,0.7)']],
                 'title' => [
                     'display' => true,
-                    'text' => 'Total Barang di Room: ' . $totalRoomItems,
+                    'text' => $titleText, // Menggunakan teks judul yang sudah dimodifikasi
                 ]
             ],
             'scales' => [
@@ -102,12 +116,17 @@ class BarangChartRoom extends ChartWidget
                     'min' => 0,
                 ],
             ],
-            'aspectRatio' => 2,
+            'aspectRatio' => 1.5,
         ];
     }
 
     public static function canView(): bool
     {
         return Auth::check() && Auth::user()->role === 'chief_engineering';
+    }
+
+    public static function getWidgetWidth(): string
+    {
+        return 'full';
     }
 }

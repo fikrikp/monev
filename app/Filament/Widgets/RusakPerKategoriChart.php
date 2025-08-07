@@ -11,6 +11,10 @@ class RusakPerKategoriChart extends ChartWidget
 {
     protected static ?string $heading = 'Barang Rusak per Kategori';
 
+    // Properti baru untuk menyimpan kategori dengan kerusakan terbanyak
+    protected ?string $mostDamagedCategory = null;
+    protected int $maxDamagedCount = 0;
+
     protected function getData(): array
     {
         // Ambil semua kategori
@@ -26,6 +30,12 @@ class RusakPerKategoriChart extends ChartWidget
 
             $labels[] = $kategori->category_name;
             $data[] = $count;
+
+            // Logika untuk menemukan kategori dengan kerusakan terbanyak
+            if ($count > $this->maxDamagedCount) {
+                $this->maxDamagedCount = $count;
+                $this->mostDamagedCategory = $kategori->category_name;
+            }
         }
 
         return [
@@ -47,6 +57,15 @@ class RusakPerKategoriChart extends ChartWidget
 
     protected function getOptions(): ?array
     {
+        $titleText = 'Evaluasi : ';
+
+        // Logika untuk menentukan teks evaluasi
+        if ($this->mostDamagedCategory && $this->maxDamagedCount > 0) {
+            $titleText .= 'Membutuhkan daily worker ' . $this->mostDamagedCategory;
+        } else {
+            $titleText .= 'Tidak ada';
+        }
+
         return [
             'plugins' => [
                 'legend' => [
@@ -54,6 +73,10 @@ class RusakPerKategoriChart extends ChartWidget
                         'color' => '#374151',
                     ]
                 ],
+                'title' => [
+                    'display' => true,
+                    'text' => $titleText, // Menggunakan teks judul yang sudah dimodifikasi
+                ]
             ],
             'scales' => [
                 'x' => [
@@ -75,6 +98,11 @@ class RusakPerKategoriChart extends ChartWidget
     public static function canView(): bool
     {
         return Auth::check() && Auth::user()->role === 'supervisor';
+    }
+
+    public static function getWidgetWidth(): string
+    {
+        return 'full';
     }
 
     public static ?int $sort = 3;
