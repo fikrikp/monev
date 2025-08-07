@@ -20,7 +20,6 @@
                     <h3 class="font-semibold text-gray-500 dark:text-gray-400">Evaluasi</h3>
                     <form method="POST" action="{{ route('evaluasi.kirim', $record->id) }}" class="mt-2">
                         @csrf
-                        @method('PUT')
                         <textarea name="evaluasi" rows="4" class="block w-full border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" @if (!$canEditEvaluation) readonly @endif>{{ $record->evaluasi }}</textarea>
                         @if ($canEditEvaluation)
                         <button type="submit" class="mt-2 px-4 py-2 bg-primary-600 text-white font-semibold rounded-md hover:bg-primary-700 w-full">Kirim Evaluasi</button>

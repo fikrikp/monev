@@ -15,12 +15,16 @@ class MaintenanceReqController extends Controller
     {
         Log::info('MASUK ke kirimEvaluasi()', [
             'user_id' => Auth::user()->id,
-            'role' => Auth::user()->role ?? 'guest',
-            'evaluasi_data_diterima' => $request->evaluasi,
+            'role' => Auth::user()?->role,
+            'evaluasi' => $request->evaluasi,
+            'maintenance_id' => $maintenanceReq->id,
+            'all_request_data' => $request->all()
         ]);
 
-        // 1. Otorisasi
-        if (!Auth::check() || Auth::user()->role !== 'chief_engineering') {
+        // Perbaikan: Otorisasi seharusnya berada di awal
+        // Jika pengguna TIDAK memiliki izin, langsung tolak dan kembalikan.
+        // Ini memastikan logika penyimpanan data di bawahnya hanya dieksekusi oleh yang berwenang.
+        if (Auth::user()->role !== 'chief_engineering') {
             Notification::make()
                 ->title('Akses Ditolak!')
                 ->body('Anda tidak memiliki izin untuk mengirim evaluasi.')
@@ -29,16 +33,16 @@ class MaintenanceReqController extends Controller
             return back();
         }
 
+        // Logika penyimpanan data berada di luar blok otorisasi,
+        // sehingga hanya dijalankan jika otorisasi berhasil.
         try {
-            // 2. Validasi data
+            // Validasi data
             $validatedData = $request->validate([
-                'evaluasi' => 'nullable|string',
+                'evaluasi' => 'required|string',
             ]);
 
-            // 3. Update data evaluasi
-            $updated = $maintenanceReq->update([
-                'evaluasi' => $validatedData['evaluasi']
-            ]);
+            // Memperbarui record evaluasi
+            $updated = $maintenanceReq->update(['evaluasi' => $validatedData['evaluasi']]);
 
             if ($updated) {
                 Notification::make()
@@ -64,7 +68,7 @@ class MaintenanceReqController extends Controller
         return back();
     }
 
-
+    // Fungsi-fungsi lain di sini tidak diubah
     public function ubahStatus(Request $request, MaintenanceReq $maintenanceReq)
     {
         Log::info('Status Request Data:', $request->all());
@@ -86,10 +90,8 @@ class MaintenanceReqController extends Controller
 
             $updated = $maintenanceReq->update(['status' => $validatedData['status']]);
 
-            // ✅ PERBAIKAN PENTING DI SINI: Perbarui kondisi Barang jika statusnya 'done'
             if ($updated && $maintenanceReq->status === 'done') {
-                $maintenanceReq->barang->update(['condition' => 'baik']); // Pastikan kolom 'condition' di model Barang ada di $fillable
-
+                $maintenanceReq->barang->update(['condition' => 'baik']);
             }
 
             if ($updated) {
