@@ -104,11 +104,13 @@ class BarangChartMeetingRoom extends ChartWidget
                     'type' => 'line',
                     'label' => '20% dari Total Barang',
                     'data' => $lineData,
-                    'borderColor' => '#3b82f6', // biru
-                    'backgroundColor' => 'rgba(59, 130, 246, 0.2)', // background biru transparan
-                    'borderWidth' => 2,
+                    'borderColor' => '#fbbf24',
+                    'backgroundColor' => '#fbbe24a9',
+                    'borderWidth' => 3,
                     'fill' => false,
-                    'tension' => 0,
+                    'tension' => 0.4,
+                    'pointRadius' => 0,
+                    'pointHoverRadius' => 0,
                 ],
             ],
             'labels' => $itemNames->toArray(),
