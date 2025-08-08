@@ -10,65 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
 class MaintenanceReqController extends Controller
-{
-    public function kirimEvaluasi(Request $request, MaintenanceReq $maintenanceReq)
-    {
-        Log::info('MASUK ke kirimEvaluasi()', [
-            'user_id' => Auth::user()->id,
-            'role' => Auth::user()?->role,
-            'evaluasi' => $request->evaluasi,
-            'maintenance_id' => $maintenanceReq->id,
-            'all_request_data' => $request->all()
-        ]);
-
-        // Perbaikan: Otorisasi seharusnya berada di awal
-        // Jika pengguna TIDAK memiliki izin, langsung tolak dan kembalikan.
-        // Ini memastikan logika penyimpanan data di bawahnya hanya dieksekusi oleh yang berwenang.
-        if (Auth::user()->role !== 'chief_engineering') {
-            Notification::make()
-                ->title('Akses Ditolak!')
-                ->body('Anda tidak memiliki izin untuk mengirim evaluasi.')
-                ->danger()
-                ->send();
-            return back();
-        }
-
-        // Logika penyimpanan data berada di luar blok otorisasi,
-        // sehingga hanya dijalankan jika otorisasi berhasil.
-        try {
-            // Validasi data
-            $validatedData = $request->validate([
-                'evaluasi' => 'required|string',
-            ]);
-
-            // Memperbarui record evaluasi
-            $updated = $maintenanceReq->update(['evaluasi' => $validatedData['evaluasi']]);
-
-            if ($updated) {
-                Notification::make()
-                    ->title('Evaluasi Berhasil Dikirim!')
-                    ->success()
-                    ->send();
-            } else {
-                Notification::make()
-                    ->title('Gagal Menyimpan Evaluasi.')
-                    ->body('Terjadi masalah saat memperbarui record evaluasi.')
-                    ->danger()
-                    ->send();
-            }
-        } catch (\Exception $e) {
-            Log::error('Error update evaluasi: ' . $e->getMessage());
-            Notification::make()
-                ->title('Terjadi Kesalahan!')
-                ->body('Terjadi kesalahan saat mencoba menyimpan evaluasi.')
-                ->danger()
-                ->send();
-        }
-
-        return back();
-    }
-
-    // Fungsi-fungsi lain di sini tidak diubah
+{    // Fungsi-fungsi lain di sini tidak diubah
     public function ubahStatus(Request $request, MaintenanceReq $maintenanceReq)
     {
         Log::info('Status Request Data:', $request->all());
@@ -145,5 +87,40 @@ class MaintenanceReqController extends Controller
             Notification::make()->title('Terjadi Kesalahan!')->body('Terjadi kesalahan saat mencoba memperbarui gambar.')->danger()->send();
         }
         return back();
+    }
+
+    public function addEvaluation(Request $request, MaintenanceReq $maintenanceReq)
+    {
+        if (Auth::user()->role !== 'chief_engineering') {
+            Notification::make()
+                ->title('Akses Ditolak!')
+                ->body('Anda tidak memiliki izin untuk menambahkan evaluasi.')
+                ->danger()
+                ->send();
+            return back();
+        }
+
+        $request->validate([
+            'evaluasi' => 'required|string|max:1000',
+        ]);
+
+        try {
+            $maintenanceReq->evaluasi = $request->evaluasi;
+            $maintenanceReq->save();
+
+            Notification::make()
+                ->title('Evaluasi berhasil ditambahkan.')
+                ->success()
+                ->send();
+        } catch (\Exception $e) {
+            Log::error('Error menambahkan evaluasi: ' . $e->getMessage());
+            Notification::make()
+                ->title('Terjadi Kesalahan!')
+                ->body('Gagal menambahkan evaluasi.')
+                ->danger()
+                ->send();
+        }
+
+        return redirect()->route('filament.admin.resources.maintenance-reqs.index');
     }
 }

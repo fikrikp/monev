@@ -16,15 +16,13 @@
         <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">Lakukan Tindakan</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {{-- Evaluasi --}}
                 <div>
-                    <h3 class="font-semibold text-gray-500 dark:text-gray-400">Evaluasi</h3>
-                    <form method="POST" action="{{ route('evaluasi.kirim', $record->id) }}" class="mt-2">
-                        @csrf
-                        <textarea name="evaluasi" rows="4" class="block w-full border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" @if (!$canEditEvaluation) readonly @endif>{{ $record->evaluasi }}</textarea>
-                        @if ($canEditEvaluation)
-                        <button type="submit" class="mt-2 px-4 py-2 bg-primary-600 text-white font-semibold rounded-md hover:bg-primary-700 w-full">Kirim Evaluasi</button>
-                        @endif
-                    </form>
+                    <h3 class="font-semibold text-gray-500 dark:text-gray-400 mb-2">Evaluasi</h3>
+                    <textarea rows="4" readonly
+                        class="block w-full border border-gray-300 rounded-lg p-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-primary-500 focus:border-primary-500">
+                    {{ $record->evaluasi ?? 'Belum ada evaluasi' }}
+                    </textarea>
                 </div>
                 <div>
                     <h3 class="font-semibold text-gray-500 dark:text-gray-400">Status Maintenance:

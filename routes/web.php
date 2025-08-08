@@ -28,9 +28,10 @@ Route::get('/maintenance/export', function (Request $request) {
 
 Route::get('/', fn() => redirect('/admin/login'));
 
-Route::prefix('evaluasi')->group(function () {
-    Route::post('/kirim/{maintenanceReq}', [MaintenanceReqController::class, 'kirimEvaluasi'])
-        ->name('evaluasi.kirim');
+Route::middleware(['auth'])->prefix('evaluasi')->group(function () {
+
+    Route::post('/maintenance/{maintenanceReq}/add-evaluation', [MaintenanceReqController::class, 'addEvaluation'])
+        ->name('maintenance.add-evaluation');
 
     Route::put('/ubah-status/{maintenanceReq}', [MaintenanceReqController::class, 'ubahStatus'])
         ->name('evaluasi.ubah-status');

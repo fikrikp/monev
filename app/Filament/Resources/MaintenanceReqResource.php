@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\DatePicker;
 use Illuminate\Support\Facades\Auth;
+use Filament\Notifications\Notification;
 
 class MaintenanceReqResource extends Resource
 {
@@ -233,9 +234,28 @@ class MaintenanceReqResource extends Resource
                     ->modalContent(
                         fn($record) => view('filament.resources.maintenance-req-resource.pages.view-maintenance-req', compact('record'))
                     ),
+
+                Tables\Actions\Action::make('add_evaluation')
+                    ->label('Tambah Evaluasi')
+                    ->icon('heroicon-o-document-text')
+                    ->visible(fn() => auth()->check() && auth()->user()->role === 'chief_engineering')
+                    ->form([
+                        Forms\Components\Textarea::make('evaluasi')
+                            ->label('Evaluasi')
+                            ->required()
+                            ->rows(4),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $record->evaluasi = $data['evaluasi']; // ganti jadi 'evaluasi'
+                        $record->save();
+
+                        Notification::make()
+                            ->title('Evaluasi berhasil ditambahkan.')
+                            ->success()
+                            ->send();
+                    }),
             ]);
     }
-
     public static function getPages(): array
     {
         return [
