@@ -9,96 +9,96 @@ use Illuminate\Support\Facades\Auth;
 
 class BarangChartMeetingRoom extends ChartWidget
 {
-    // Judul widget yang akan ditampilkan di dashboard
     protected static ?string $heading = 'Monitoring Barang Inventaris Area Meeting Room';
-
-    // Mendefinisikan tipe chart, meskipun ini mixed-chart, kita bisa set tipe dasarnya
     protected static string $chart = 'bar';
-
-    // Menentukan urutan widget di dashboard
     public static ?int $sort = 3;
 
-    // Properti baru untuk menyimpan status apakah diperlukan daily worker
+    // Properti untuk menandai apakah perlu daily worker
     protected bool $needsDailyWorker = false;
 
-    /**
-     * Get the type of chart to display
-     */
     protected function getType(): string
     {
         return 'bar';
     }
 
-    /**
-     * Metode ini mengambil data dari database dan mengonfigurasinya untuk chart.
-     * Ini akan dijalankan oleh Filament.
-     */
     protected function getData(): array
     {
         $areaName = "Meeting Room";
 
-        // Mengambil semua nama barang unik di area "Meeting Room"
-        $itemNames = Barang::whereHas('room.area', function ($query) use ($areaName) {
-            $query->where('area_name', $areaName);
-        })
+        // Ambil semua item_name unik di area ini
+        $itemNames = Barang::whereHas(
+            'room.area',
+            fn(Builder $query) =>
+            $query->where('area_name', $areaName)
+        )
             ->select('item_name')
             ->distinct()
             ->pluck('item_name');
 
         $baikData = [];
         $rusakData = [];
-        $lineData = []; // Data untuk grafik garis
 
-        // Loop melalui setiap nama barang untuk menghitung jumlahnya
+        // Hitung total semua barang di area ini
+        $totalSemuaBarang = 0;
         foreach ($itemNames as $itemName) {
-            // Hitung total jumlah barang per item_name
             $totalCount = Barang::where('item_name', $itemName)
-                ->whereHas('room.area', function (Builder $query) use ($areaName) {
-                    $query->where('area_name', $areaName);
-                })
+                ->whereHas(
+                    'room.area',
+                    fn(Builder $query) =>
+                    $query->where('area_name', $areaName)
+                )
                 ->count();
+            $totalSemuaBarang += $totalCount;
+        }
 
-            // Hitung jumlah barang dengan kondisi 'baik'
+        // Hitung batas kerusakan
+        $jumlahJenisBarang = count($itemNames);
+        $rataRata = $totalSemuaBarang / ($jumlahJenisBarang ?: 1);
+        $batasKerusakan = ceil($rataRata * 0.20);
+
+        // Isi data baik, rusak, dan garis batas
+        $lineData = [];
+        foreach ($itemNames as $itemName) {
             $baikCount = Barang::where('item_name', $itemName)
                 ->where('condition', 'baik')
-                ->whereHas('room.area', function (Builder $query) use ($areaName) {
-                    $query->where('area_name', $areaName);
-                })
+                ->whereHas(
+                    'room.area',
+                    fn(Builder $query) =>
+                    $query->where('area_name', $areaName)
+                )
                 ->count();
 
-            // Hitung jumlah barang dengan kondisi 'rusak'
             $rusakCount = Barang::where('item_name', $itemName)
                 ->where('condition', 'rusak')
-                ->whereHas('room.area', function (Builder $query) use ($areaName) {
-                    $query->where('area_name', $areaName);
-                })
+                ->whereHas(
+                    'room.area',
+                    fn(Builder $query) =>
+                    $query->where('area_name', $areaName)
+                )
                 ->count();
 
-            // Masukkan data ke array
             $baikData[] = $baikCount;
             $rusakData[] = $rusakCount;
-            $lineData[] = $totalCount * 0.20; // Menghitung 20% dari total barang
+            $lineData[] = $batasKerusakan;
 
-            // Memeriksa jika jumlah barang rusak melebihi 20% dari total
-            if ($rusakCount > ($totalCount * 0.20)) {
+            if ($rusakCount > $batasKerusakan) {
                 $this->needsDailyWorker = true;
             }
         }
 
-        // Mengembalikan data dalam format yang dimengerti Chart.js
         return [
             'datasets' => [
                 [
                     'type' => 'bar',
                     'label' => 'Baik',
                     'data' => $baikData,
-                    'backgroundColor' => '#4ade80', // hijau
+                    'backgroundColor' => '#4ade80',
                 ],
                 [
                     'type' => 'bar',
                     'label' => 'Rusak',
                     'data' => $rusakData,
-                    'backgroundColor' => '#f87171', // merah
+                    'backgroundColor' => '#f87171',
                 ],
                 [
                     'type' => 'line',
@@ -117,30 +117,17 @@ class BarangChartMeetingRoom extends ChartWidget
         ];
     }
 
-    /**
-     * Metode ini mengonfigurasi opsi-opsi Chart.js
-     */
     protected function getOptions(): ?array
     {
-        // Mengatur teks judul secara dinamis berdasarkan kondisi
-        $titleText = 'Evaluasi : ';
-        if ($this->needsDailyWorker) {
-            $titleText .= 'Diperlukan Daily Worker';
-        } else {
-            $titleText .= 'Tidak ada';
-        }
+        $titleText = 'Evaluasi : ' . ($this->needsDailyWorker ? 'Diperlukan Daily Worker' : 'Tidak ada');
 
         return [
             'responsive' => true,
             'plugins' => [
-                'legend' => [
-                    'labels' => [
-                        'color' => 'rgba(0,0,0,0.7)',
-                    ],
-                ],
+                'legend' => ['labels' => ['color' => 'rgba(0,0,0,0.7)']],
                 'title' => [
                     'display' => true,
-                    'text' => $titleText, // Menggunakan teks judul yang sudah dimodifikasi
+                    'text' => $titleText,
                 ]
             ],
             'scales' => [
@@ -154,15 +141,17 @@ class BarangChartMeetingRoom extends ChartWidget
                     'min' => 0,
                 ],
             ],
-            'aspectRatio' => 1.5
+            'aspectRatio' => 1.5,
         ];
     }
 
-    /**
-     * Metode ini membatasi siapa yang bisa melihat widget ini berdasarkan role
-     */
     public static function canView(): bool
     {
         return Auth::check() && Auth::user()->role === 'chief_engineering';
+    }
+
+    public static function getWidgetWidth(): string
+    {
+        return 'full';
     }
 }

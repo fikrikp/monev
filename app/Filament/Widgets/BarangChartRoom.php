@@ -24,34 +24,50 @@ class BarangChartRoom extends ChartWidget
     protected function getData(): array
     {
         $areaName = "Room";
-        $itemNames = Barang::whereHas('room.area', fn(Builder $query) => $query->where('area_name', $areaName))
+        $itemNames = Barang::whereHas('room.area', fn(Builder $query) =>
+        $query->where('area_name', $areaName))
             ->select('item_name')
             ->distinct()
             ->pluck('item_name');
 
         $baikData = [];
         $rusakData = [];
-        $lineData = [];
 
+        // --- Hitung total semua barang & jumlah jenis barang ---
+        $totalSemuaBarang = 0;
         foreach ($itemNames as $itemName) {
             $totalCount = Barang::where('item_name', $itemName)
-                ->whereHas('room.area', fn(Builder $query) => $query->where('area_name', $areaName))
+                ->whereHas('room.area', fn(Builder $query) =>
+                $query->where('area_name', $areaName))
                 ->count();
+            $totalSemuaBarang += $totalCount;
+        }
+
+        $jumlahJenisBarang = count($itemNames);
+        $rataRata = $totalSemuaBarang / $jumlahJenisBarang;
+        $batasKerusakan = ceil($rataRata * 0.20); // 20% dari rata-rata, dibulatkan ke atas
+
+        // --- Isi data baik, rusak, dan threshold ---
+        $lineData = [];
+        foreach ($itemNames as $itemName) {
             $baikCount = Barang::where('item_name', $itemName)
                 ->where('condition', 'baik')
-                ->whereHas('room.area', fn(Builder $query) => $query->where('area_name', $areaName))
+                ->whereHas('room.area', fn(Builder $query) =>
+                $query->where('area_name', $areaName))
                 ->count();
+
             $rusakCount = Barang::where('item_name', $itemName)
                 ->where('condition', 'rusak')
-                ->whereHas('room.area', fn(Builder $query) => $query->where('area_name', $areaName))
+                ->whereHas('room.area', fn(Builder $query) =>
+                $query->where('area_name', $areaName))
                 ->count();
 
             $baikData[] = $baikCount;
             $rusakData[] = $rusakCount;
-            $lineData[] = $totalCount * 0.20;
+            $lineData[] = $batasKerusakan;
 
-            // Memeriksa jika jumlah barang rusak melebihi 20% dari total
-            if ($rusakCount > ($totalCount * 0.20)) {
+            // Cek apakah rusak melebihi batas
+            if ($rusakCount > $batasKerusakan) {
                 $this->needsDailyWorker = true;
             }
         }
@@ -89,13 +105,12 @@ class BarangChartRoom extends ChartWidget
 
     protected function getOptions(): ?array
     {
-
         // Mengatur teks judul secara dinamis berdasarkan kondisi
         $titleText = 'Evaluasi : ';
         if ($this->needsDailyWorker) {
             $titleText .= 'Diperlukan Daily Worker';
         } else {
-            $titleText .= 'Tidak ada'; // Tambahkan teks ini jika kondisi tidak terpenuhi
+            $titleText .= 'Tidak ada';
         }
 
         return [
@@ -104,7 +119,7 @@ class BarangChartRoom extends ChartWidget
                 'legend' => ['labels' => ['color' => 'rgba(0,0,0,0.7)']],
                 'title' => [
                     'display' => true,
-                    'text' => $titleText, // Menggunakan teks judul yang sudah dimodifikasi
+                    'text' => $titleText,
                 ]
             ],
             'scales' => [
