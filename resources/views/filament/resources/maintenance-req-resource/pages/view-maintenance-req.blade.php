@@ -18,7 +18,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {{-- Evaluasi --}}
                 <div>
-                    <h3 class="font-semibold text-gray-500 dark:text-gray-400 mb-2">Evaluasi</h3>
+                    <h3 class="font-semibold text-gray-500 dark:text-gray-400 mb-2">Evaluasi Chief Engineer</h3>
                     <textarea rows="4" readonly
                         class="block w-full border border-gray-300 rounded-lg p-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-primary-500 focus:border-primary-500">
                     {{ $record->evaluasi ?? 'Belum ada evaluasi' }}

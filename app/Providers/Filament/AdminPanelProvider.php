@@ -13,7 +13,8 @@ use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Filament\Facades\Filament;
 use Filament\Support\Facades\FilamentAsset; // Pastikan ini diimpor
-use Filament\Support\Assets\Js; // ✅ PENTING: Pastikan ini diimpor
+use Filament\Support\Assets\Js;
+use App\Filament\Pages\Auth\Login; // ✅ PENTING: Pastikan ini diimpor
 
 
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;

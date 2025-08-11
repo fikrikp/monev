@@ -95,7 +95,9 @@ class ReportResource extends Resource
                         fn($record) => view('filament.resources.maintenance-req-resource.pages.view-maintenance-req', compact('record'))
                     ),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                Tables\Actions\DeleteBulkAction::make(),
+            ]);
     }
 
     public static function getPages(): array

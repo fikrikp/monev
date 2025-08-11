@@ -14,6 +14,11 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Infolist;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Notifications\Notification;
 
 class BarangResource extends Resource
 {
@@ -83,6 +88,7 @@ class BarangResource extends Resource
             ]);
     }
 
+    // ...
     public static function table(Table $table): Table
     {
         return $table
@@ -90,11 +96,18 @@ class BarangResource extends Resource
                 TextColumn::make('index')
                     ->rowIndex()
                     ->label('No'),
-                TextColumn::make('item_name')->label('Nama Barang')->sortable()->searchable(),
-                TextColumn::make('type')->label('Type')->sortable()->searchable(),
-                TextColumn::make('room.room_name')->label('Ruangan')->sortable()->searchable(),
-                TextColumn::make('room.area.area_name')->label('Area'),
-                TextColumn::make('category.category_name')->label('Kategori')->sortable()->searchable(),
+                TextColumn::make('item_name')
+                    ->label('Nama Barang')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('room.area.area_name')
+                    ->label('Area')
+                    ->sortable()
+                    ->searchable(),
+                TextColumn::make('room.room_name')
+                    ->label('Ruangan')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('condition')
                     ->label('Kondisi')
                     ->badge()
@@ -103,24 +116,62 @@ class BarangResource extends Resource
                         'rusak' => 'danger',
                     })->sortable()->searchable(),
             ])
+
             ->filters([
-                //
+                SelectFilter::make('area')
+                    ->label('Area')
+                    ->options(Area::all()->pluck('area_name', 'area_name'))
+                    ->query(function ($query, $data) {
+                        if ($data['value']) {
+                            $query->whereHas('room.area', function ($q) use ($data) {
+                                $q->where('area_name', $data['value']);
+                            });
+                        }
+                    })
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(), // Tambahkan ini
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                // Tables\Actions\DeleteBulkAction::make(),
+                Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                Section::make('Informasi Barang')
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('item_name')->label('Nama Barang'),
+                        TextEntry::make('type')->label('Type'),
+                        TextEntry::make('category.category_name')->label('Kategori'),
+                    ]),
+
+                Section::make('Kondisi per Ruangan')
+                    ->schema([
+                        TextEntry::make('room.room_name')
+                            ->label('Ruangan'),
+                        TextEntry::make('condition')
+                            ->label('Kondisi')
+                            ->badge()
+                            ->color(fn(string $state): string => match ($state) {
+                                'baik' => 'success',
+                                'rusak' => 'danger',
+                            }),
+                    ])
+            ]);
+    }
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListBarangs::route('/'),
             'create' => Pages\CreateBarang::route('/create'),
             'edit' => Pages\EditBarang::route('/{record}/edit'),
+            'view' => Pages\ViewBarang::route('/{record}'),
         ];
     }
 }
